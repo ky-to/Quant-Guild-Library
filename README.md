@@ -4,8 +4,6 @@ Welcome to the **Quant Guild Library** — a curated collection of Jupyter Noteb
 
 [🚀 Master Quantitative Skills with Quant Guild](https://quantguild.com)
 
-[📅 Meet with me 1:1](https://calendly.com/quantguild-support)
-
 [📈 Interactive Brokers for Algorithmic Trading](https://www.interactivebrokers.com/mkt/?src=quantguildY&url=%2Fen%2Fwhyib%2Foverview.php)
 
 [👾 Join the Quant Guild Discord server here](https://discord.com/invite/MJ4FU2c6c3)
