@@ -1,0 +1,17 @@
+*🛠️ Project Source Code 👇*
+
+*🏛️ Project 1: Q-Fin*
+https://github.com/romanmichaelpaolucci/Q-Fin
+https://pypi.org/project/qfin/
+
+*🔗 Project 2: Markov Chain Risk Engine*
+https://slmc-model-rmp.streamlit.app/
+
+*👨🏻‍🍳 Project 3: Gaussian Cookbook*
+https://gaussiancookbook.com/
+
+*📝 Project 4: Medium Blog*
+https://medium.com/@quantguild
+
+*🌊 Project 5: Volatility Trading System*
+https:// (no way) 😆

@@ -4,8 +4,6 @@ Welcome to the **Quant Guild Library** — a curated collection of Jupyter Noteb
 
 [🚀 Master Quantitative Skills with Quant Guild](https://quantguild.com)
 
-[📅 Meet with me 1:1](https://calendly.com/quantguild-support)
-
 [📈 Interactive Brokers for Algorithmic Trading](https://www.interactivebrokers.com/mkt/?src=quantguildY&url=%2Fen%2Fwhyib%2Foverview.php)
 
 [👾 Join the Quant Guild Discord server here](https://discord.com/invite/MJ4FU2c6c3)
@@ -17,9 +15,21 @@ Welcome to the **Quant Guild Library** — a curated collection of Jupyter Noteb
 ### 📅 2026 Video Lectures (Newest First)
 
 **Latest:**
-- **83.** [Quant Explains Risk-Neutral Option Pricing](https://youtu.be/wYpg0TGxvgM)
+- **95.** [Trading Mean Reversion with Kalman Filters](https://youtu.be/BuPil7nXvMU)
 
 **Previous:**
+- **94.** [Hawkes Processes for Quant Finance](https://youtu.be/BotPHbWFRUA)
+- **93.** [Non-Stationarity and Why Market Timing Fails](https://youtu.be/7nvjrgqKjJE)
+- **92.** [Kalman Filters for Quant Finance](https://youtu.be/zVJY_oaVh-0)
+- **91.** [How Goldman Sachs Prices Variance Swaps](https://youtu.be/24-wC8RI7BA)
+- **90.** [Quant Responds to and Corrects YouTube Comments](https://youtu.be/CFqo-BMtKgY)
+- **89.** [Black-Scholes Implied Volatility in 3 Minutes](https://youtu.be/8CB22YhioRw)
+- **88.** [How a Quant Manages a Portfolio](https://youtu.be/JjbBAyu0DmI)
+- **87.** [How to Quant Trade in 3 Minutes](https://youtu.be/mZLNzqDZHbA)
+- **86.** [5 Projects that Made me a Quant](https://youtu.be/bTMSAEn0XW4)
+- **85.** [Quant Derives Volterra Process Discretization and Simulation](https://youtu.be/ifwhZDCjAgo)
+- **84.** [How to Build a Live Volatility Surface in Python (Interactive Brokers)](https://youtu.be/5JEeAsQqlro)
+- **83.** [Quant Explains Risk-Neutral Option Pricing](https://youtu.be/wYpg0TGxvgM)
 - **82.** [Poisson Processes for Quant Finance](https://youtu.be/oug0vzbwISQ)
 - **81.** [Why Most Traders Lose: Ergodicity for Quant Trading](https://youtu.be/dryV1qJYUw8)
 - **80.** [The 5 Papers that Built Modern Quant Finance](https://youtu.be/ZwS1gMGegrM)
