@@ -334,27 +334,45 @@ trades_df = pd.DataFrame(trades)
 print("\n" + "="*80)
 print("📋 DETAILED TRADE LOG (Every Position Change)")
 print("="*80)
+
+# Classify trades as "major" (involving FLAT) vs "minor" (FULL <-> HALF)
 if len(trades_df) > 0:
-    print(f"{'Date':<12} {'Action':<6} {'New Signal':<14} {'Price':>10} {'Shares':>10} "
-          f"{'Trade $':>10} {'Pos Shares':>12} {'Portfolio $':>12} {'Mkt Volume':>14}")
-    print("-" * 110)
-    for _, t in trades_df.iterrows():
+    trades_df["Major"] = trades_df["Signal"].str.contains("FLAT") | \
+                         trades_df["Signal"].shift(1, fill_value="").str.contains("FLAT")
+    
+    major_trades = trades_df[trades_df["Signal"].str.contains("FLAT") | 
+                             trades_df.index.isin(
+                                 trades_df[trades_df["Signal"].str.contains("FLAT")].index + 1
+                             )].copy()
+
+# Print summary of major regime changes first
+print("\n📌 MAJOR REGIME CHANGES (Enter/Exit Market):")
+print(f"{'Date':<12} {'Action':<6} {'New Signal':<14} {'Price':>10} {'Shares':>10} "
+      f"{'Trade $':>10} {'Pos Shares':>12} {'Portfolio $':>12} {'Mkt Volume':>14}")
+print("-" * 110)
+major_count = 0
+prev_signal_str = ""
+for _, t in trades_df.iterrows():
+    # Show trades where we go to/from FLAT, or the first entry
+    is_to_flat = "FLAT" in t["Signal"]
+    is_from_flat = "FLAT" in prev_signal_str
+    if is_to_flat or is_from_flat or prev_signal_str == "":
         print(f"{t['Date']:<12} {t['Action']:<6} {t['Signal']:<14} "
               f"${t['Price']:>9,.2f} {t['Shares']:>10.2f} "
               f"${t['Trade $']:>9,.2f} {t['Position Shares']:>12.2f} "
               f"${t['Portfolio $']:>11,.2f} {t['Volume (Market)']:>14}")
-    print("-" * 110)
-    print(f"  Total trades: {len(trades_df)}")
-    final_val = cash + position_shares * float(test_data["price"].iloc[-1])
-    print(f"  Final portfolio value: ${final_val:,.2f}  (started with ${initial_investment:,})")
-else:
-    print("  No trades generated in the test period.")
+        major_count += 1
+    prev_signal_str = t["Signal"]
+print("-" * 110)
+print(f"  Major trades (enter/exit): {major_count}  |  Total trades (all rebalances): {len(trades_df)}")
+final_val = cash + position_shares * float(test_data["price"].iloc[-1])
+print(f"  Final portfolio value: ${final_val:,.2f}  (started with ${initial_investment:,})")
 
-# --- Fig 3: Price chart with buy/sell arrows + volume ---
+# --- Fig 3: Price chart with regime shading + volume ---
 fig3 = make_subplots(
     rows=3, cols=1,
     subplot_titles=(
-        f"{ticker} Price with Trade Signals",
+        f"{ticker} Price with Regime Shading & Key Signals",
         "Position Signal Over Time",
         "Daily Volume"
     ),
@@ -368,60 +386,81 @@ fig3.add_trace(go.Scatter(
     x=test_data.index,
     y=test_data["price"],
     name="Price",
-    line=dict(color='gray', width=1.5),
+    line=dict(color='black', width=1.5),
     hovertemplate='Date: %{x}<br>Price: $%{y:.2f}<extra></extra>'
 ), row=1, col=1)
 
-# Color the price line by regime
-regime_colors = {0.0: "red", 0.5: "blue", 1.0: "green"}
+# Add regime background shading (colored bands behind price)
+regime_colors_bg = {0.0: "rgba(255,0,0,0.15)", 0.5: "rgba(0,0,255,0.08)", 1.0: "rgba(0,180,0,0.12)"}
 regime_names = {0.0: "Bear (Flat)", 0.5: "Neutral (Half)", 1.0: "Bull (Full)"}
-for sig_val, color in regime_colors.items():
-    mask = test_data["wf_signal"] == sig_val
-    if mask.sum() > 0:
-        fig3.add_trace(go.Scatter(
-            x=test_data.index[mask],
-            y=test_data["price"][mask],
-            mode='markers',
-            name=regime_names[sig_val],
-            marker=dict(color=color, size=4, opacity=0.7),
-            hovertemplate='Date: %{x}<br>Price: $%{y:.2f}<br>' + regime_names[sig_val] + '<extra></extra>'
-        ), row=1, col=1)
 
-# Add buy/sell markers from trade log
+# Find contiguous regime blocks for shading
+signal_series = test_data["wf_signal"].values
+block_start = 0
+for i in range(1, len(signal_series) + 1):
+    if i == len(signal_series) or signal_series[i] != signal_series[block_start]:
+        sig = signal_series[block_start]
+        fig3.add_vrect(
+            x0=test_data.index[block_start],
+            x1=test_data.index[min(i, len(signal_series) - 1)],
+            fillcolor=regime_colors_bg.get(sig, "rgba(128,128,128,0.1)"),
+            layer="below",
+            line_width=0,
+            row=1, col=1
+        )
+        block_start = i
+
+# Add legend entries for regime colors
+for sig_val, color in {0.0: "red", 0.5: "blue", 1.0: "green"}.items():
+    fig3.add_trace(go.Scatter(
+        x=[None], y=[None], mode='markers',
+        name=regime_names[sig_val],
+        marker=dict(color=color, size=10, symbol='square'),
+        showlegend=True
+    ), row=1, col=1)
+
+# Add BUY/SELL arrows only for MAJOR signal changes (involving FLAT)
 if len(trades_df) > 0:
-    buys = trades_df[trades_df["Action"] == "BUY"]
-    sells = trades_df[trades_df["Action"] == "SELL"]
+    major_buys = []
+    major_sells = []
+    prev_sig_label = ""
+    for _, t in trades_df.iterrows():
+        is_to_flat = "FLAT" in t["Signal"]
+        is_from_flat = "FLAT" in prev_sig_label
+        if is_to_flat:
+            major_sells.append(t)
+        elif is_from_flat or prev_sig_label == "":
+            major_buys.append(t)
+        prev_sig_label = t["Signal"]
     
-    if len(buys) > 0:
+    if major_buys:
+        mb = pd.DataFrame(major_buys)
         fig3.add_trace(go.Scatter(
-            x=pd.to_datetime(buys["Date"]),
-            y=buys["Price"],
+            x=pd.to_datetime(mb["Date"]),
+            y=mb["Price"],
             mode='markers+text',
-            name='BUY',
-            marker=dict(symbol='triangle-up', size=14, color='green', line=dict(width=1, color='darkgreen')),
-            text=["BUY"] * len(buys),
+            name='Enter Position',
+            marker=dict(symbol='triangle-up', size=16, color='green', 
+                       line=dict(width=2, color='darkgreen')),
+            text=mb["Signal"].apply(lambda s: s.split("(")[0].strip()),
             textposition='top center',
-            textfont=dict(size=9, color='green'),
-            hovertemplate='<b>BUY</b><br>Date: %{x}<br>Price: $%{y:.2f}<br>'
-                         + 'Shares: ' + buys["Shares"].apply(lambda x: f"{x:.2f}").values
-                         + '<br>Trade: $' + buys["Trade $"].apply(lambda x: f"{x:,.2f}").values
-                         + '<extra></extra>'
+            textfont=dict(size=9, color='green', family='Arial Black'),
+            hovertemplate='<b>ENTER</b><br>Date: %{x}<br>Price: $%{y:.2f}<extra></extra>'
         ), row=1, col=1)
     
-    if len(sells) > 0:
+    if major_sells:
+        ms = pd.DataFrame(major_sells)
         fig3.add_trace(go.Scatter(
-            x=pd.to_datetime(sells["Date"]),
-            y=sells["Price"],
+            x=pd.to_datetime(ms["Date"]),
+            y=ms["Price"],
             mode='markers+text',
-            name='SELL',
-            marker=dict(symbol='triangle-down', size=14, color='red', line=dict(width=1, color='darkred')),
-            text=["SELL"] * len(sells),
+            name='Exit to Flat',
+            marker=dict(symbol='triangle-down', size=16, color='red',
+                       line=dict(width=2, color='darkred')),
+            text=["EXIT"] * len(ms),
             textposition='bottom center',
-            textfont=dict(size=9, color='red'),
-            hovertemplate='<b>SELL</b><br>Date: %{x}<br>Price: $%{y:.2f}<br>'
-                         + 'Shares: ' + sells["Shares"].apply(lambda x: f"{x:.2f}").values
-                         + '<br>Trade: $' + sells["Trade $"].apply(lambda x: f"{x:,.2f}").values
-                         + '<extra></extra>'
+            textfont=dict(size=9, color='red', family='Arial Black'),
+            hovertemplate='<b>EXIT TO FLAT</b><br>Date: %{x}<br>Price: $%{y:.2f}<extra></extra>'
         ), row=1, col=1)
 
 # Row 2: Signal step chart
@@ -436,6 +475,7 @@ fig3.add_trace(go.Scatter(
 ), row=2, col=1)
 
 # Row 3: Volume bars colored by signal
+regime_colors = {0.0: "red", 0.5: "blue", 1.0: "green"}
 vol_colors = [regime_colors.get(s, 'gray') for s in test_data["wf_signal"]]
 fig3.add_trace(go.Bar(
     x=test_data.index,
@@ -461,13 +501,61 @@ fig3.update_yaxes(title_text="Volume", row=3, col=1)
 fig3.update_xaxes(title_text="Date", row=3, col=1)
 fig3.show()
 
-# --- Fig 4: Plotly Table of trades ---
+# --- Fig 4: Plotly Table of MAJOR trades (enter/exit market) ---
 if len(trades_df) > 0:
+    # Build major trades dataframe
+    major_rows = []
+    prev_sig_label = ""
+    for _, t in trades_df.iterrows():
+        is_to_flat = "FLAT" in t["Signal"]
+        is_from_flat = "FLAT" in prev_sig_label
+        if is_to_flat or is_from_flat or prev_sig_label == "":
+            major_rows.append(t)
+        prev_sig_label = t["Signal"]
+    major_df = pd.DataFrame(major_rows)
+    
     fig4 = go.Figure(data=[go.Table(
         header=dict(
             values=["Date", "Action", "New Signal", "Price", "Shares Traded", 
                     "Trade Value", "Position (Shares)", "Portfolio Value", "Market Volume"],
             fill_color='rgb(50, 50, 80)',
+            font=dict(color='white', size=12),
+            align='center'
+        ),
+        cells=dict(
+            values=[
+                major_df["Date"],
+                major_df["Action"],
+                major_df["Signal"],
+                major_df["Price"].apply(lambda x: f"${x:,.2f}"),
+                major_df["Shares"].apply(lambda x: f"{x:.2f}"),
+                major_df["Trade $"].apply(lambda x: f"${x:,.2f}"),
+                major_df["Position Shares"].apply(lambda x: f"{x:.2f}"),
+                major_df["Portfolio $"].apply(lambda x: f"${x:,.2f}"),
+                major_df["Volume (Market)"],
+            ],
+            fill_color=[
+                ['rgba(144,238,144,0.3)' if a == 'BUY' else 'rgba(255,182,182,0.3)' 
+                 for a in major_df["Action"]]
+            ] * 9,
+            font=dict(size=11),
+            align='center',
+            height=28
+        )
+    )])
+    fig4.update_layout(
+        title=f"{ticker}: Key Trades — Enter/Exit Market ({strategy_start_date} onwards) — {len(major_df)} major trades",
+        template='plotly_white',
+        height=max(400, 50 + len(major_df) * 30)
+    )
+    fig4.show()
+
+    # --- Fig 5: Full trade log table (scrollable) ---
+    fig5 = go.Figure(data=[go.Table(
+        header=dict(
+            values=["Date", "Action", "New Signal", "Price", "Shares Traded", 
+                    "Trade Value", "Position (Shares)", "Portfolio Value", "Market Volume"],
+            fill_color='rgb(70, 70, 100)',
             font=dict(color='white', size=12),
             align='center'
         ),
@@ -492,9 +580,9 @@ if len(trades_df) > 0:
             height=28
         )
     )])
-    fig4.update_layout(
-        title=f"{ticker}: Complete Trade Log ({strategy_start_date} onwards) — {len(trades_df)} trades",
+    fig5.update_layout(
+        title=f"{ticker}: Complete Trade Log ({strategy_start_date} onwards) — All {len(trades_df)} rebalances",
         template='plotly_white',
-        height=max(400, 50 + len(trades_df) * 30)
+        height=600
     )
-    fig4.show()
+    fig5.show()
