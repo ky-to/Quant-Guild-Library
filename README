@@ -1,0 +1,17 @@
+Architecture
+Section	Purpose
+StrategyConfig dataclass	All tunable parameters in one place
+fetch_data()	Download + compute returns (supports any yfinance interval)
+fit_hmm() / label_regimes()	HMM training and regime labeling
+smooth_signals()	Reduce noisy flipping via hold & confirmation filters
+walk_forward()	Walk-forward validation loop
+compute_returns() / build_trade_log()	Backtest engine
+plot_*() functions	All 5 visualizations, cleanly separated
+main()	Orchestrates the full pipeline
+Key configurable parameters
+interval — "1d", "1h", "5m", "1wk", etc.
+train_bars / retrain_bars — expressed in bars (not hardcoded years), so they work with any timeframe
+min_hold_bars — minimum bars before allowing a signal change (prevents daily BUY/SELL flipping)
+confirmation_bars — regime must persist N bars before triggering a switch
+signal_bull/neutral/bear — what % to allocate in each regime (e.g. set neutral=1.0 for binary mode)
+strategy_start — when to begin the test period
