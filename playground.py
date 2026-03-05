@@ -76,6 +76,10 @@ fig1.show()
 # Signal Construction
 regime_stats = []
 
+# n_components = 3. Meaning 3 regimes (bull, bear, sideways)
+# hmm.means_ is a 2D array with shape (n_components, n_features)
+# This loop extracts the mean return and volatility for each of the 3 HMM regimes, 
+# so you can rank them and decide which is bull/bear/neutral.
 for i in range(hmm.n_components):
     mean = hmm.means_[i][0]
     vol = np.sqrt(hmm.covars_[i][0][0])
@@ -83,10 +87,8 @@ for i in range(hmm.n_components):
 
 regime_stats
 
-# Sort by mean return:
-
+# Sort by mean return: rank them and decide which is bull/bear/neutral
 regime_stats = sorted(regime_stats, key=lambda x: x[1])
-
 bear, neutral, bull = [r[0] for r in regime_stats]
 
 # Trading Signal
@@ -100,11 +102,12 @@ strategy_start_date = "2023-01-01"  # Set your strategy start date here
 
 data["strategy_return"] = data["signal"].shift(1) * data["log_return"]
 data["strategy_return"] = data["strategy_return"].where(data.index >= strategy_start_date, 0)
-data["cum_strategy"] = data["strategy_return"].cumsum()
-data["cum_buy_hold"] = data["log_return"].cumsum()
+data["cumulative_strategy"] = data["strategy_return"].cumsum()
+data["buy_hold_return"] = data["log_return"].where(data.index >= strategy_start_date, 0)
+data["cum_buy_hold"] = data["buy_hold_return"].cumsum()
 
 # Convert log returns to actual percentage returns
-data["actual_strategy_return"] = np.exp(data["cum_strategy"]) - 1
+data["actual_strategy_return"] = np.exp(data["cumulative_strategy"]) - 1
 data["actual_buy_hold_return"] = np.exp(data["cum_buy_hold"]) - 1
 
 # Calculate dollar returns (assuming $10,000 starting investment)
@@ -121,7 +124,7 @@ fig2 = make_subplots(
 
 # Log returns plot
 fig2.add_trace(go.Scatter(
-    x=data.index, y=data["cum_strategy"],
+    x=data.index, y=data["cumulative_strategy"],
     name="HMM Strategy", line=dict(color='blue'),
     hovertemplate='Date: %{x}<br>Log Return: %{y:.4f}<extra></extra>'
 ), row=1, col=1)
@@ -344,7 +347,7 @@ strategy_data["cum_best"] = strategy_data["return_best"].cumsum()
 # -------------------------
 strategies = {
     "Buy & Hold": strategy_data["cum_buy_hold"].iloc[-1],
-    "Original HMM (Long/Short)": strategy_data["cum_strategy"].iloc[-1],
+    "Original HMM (Long/Short)": strategy_data["cumulative_strategy"].iloc[-1],
     "Long-Only HMM": strategy_data["cum_long_only"].iloc[-1],
     "Smoothed HMM (3-day)": strategy_data["cum_smoothed"].iloc[-1],
     "Probability-Based HMM": strategy_data["cum_prob"].iloc[-1],
@@ -374,7 +377,7 @@ fig4.add_trace(go.Scatter(
 ), row=1, col=1)
 
 fig4.add_trace(go.Scatter(
-    x=strategy_data.index, y=(np.exp(strategy_data["cum_strategy"]) - 1) * 100,
+    x=strategy_data.index, y=(np.exp(strategy_data["cumulative_strategy"]) - 1) * 100,
     name="Original HMM", line=dict(color='red', dash='dot')
 ), row=1, col=1)
 
