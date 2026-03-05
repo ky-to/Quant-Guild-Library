@@ -276,14 +276,15 @@ test_data["prev_signal"] = test_data["wf_signal"].shift(1)
 test_data["signal_change"] = test_data["wf_signal"] != test_data["prev_signal"]
 
 # Get Close price as a flat Series (handle MultiIndex columns from yfinance)
-close_prices = test_data["Close"].values.flatten()
-test_data["price"] = close_prices
+close_vals = test_data["Close"].values.flatten()
+test_data = test_data.copy()
+test_data["price"] = close_vals
 
 # Volume (may also be MultiIndex)
 if "Volume" in test_data.columns:
-    test_data["vol"] = test_data["Volume"].values.flatten()
+    test_data["vol"] = test_data["Volume"].values.flatten().astype(float)
 else:
-    test_data["vol"] = 0
+    test_data["vol"] = 0.0
 
 # Build detailed trade log
 trades = []
@@ -293,11 +294,13 @@ portfolio_value = float(initial_investment)
 
 signal_label = {0.0: "FLAT (0%)", 0.5: "HALF (50%)", 1.0: "FULL (100%)"}
 
-for i, (date, row) in enumerate(test_data.iterrows()):
-    price = float(row["price"])
-    volume = int(row["vol"]) if not np.isnan(row["vol"]) else 0
-    current_signal = float(row["wf_signal"])
-    prev_signal = float(row["prev_signal"]) if not np.isnan(row["prev_signal"]) else 0.0
+for i in range(len(test_data)):
+    date = test_data.index[i]
+    price = float(test_data["price"].iloc[i])
+    volume = int(test_data["vol"].iloc[i]) if not np.isnan(test_data["vol"].iloc[i]) else 0
+    current_signal = float(test_data["wf_signal"].iloc[i])
+    prev_sig = test_data["prev_signal"].iloc[i]
+    prev_signal = float(prev_sig) if not (isinstance(prev_sig, float) and np.isnan(prev_sig)) else 0.0
     
     # On signal change, compute what trade happens
     if i == 0 or current_signal != prev_signal:
