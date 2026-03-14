@@ -85,15 +85,15 @@ def walk_forward(data: pd.DataFrame, cfg: StrategyConfig) -> pd.DataFrame:
             skipped_windows += 1
             continue
 
-        clean_test_returns = test_values[finite_mask].reshape(-1, 1)
-        clean_test_index = test_series.index[finite_mask]
+        clean_test_series = test_series[finite_mask]
 
-        test_regimes = model.predict(clean_test_returns)
+        for i in range(len(clean_test_series)):
+            seq = clean_test_series.iloc[: i + 1].to_numpy(dtype=float).reshape(-1, 1)
+            regime = int(model.predict(seq)[-1])
+            idx = clean_test_series.index[i]
 
-        wf.loc[clean_test_index, "wf_regime"] = test_regimes
-        wf.loc[clean_test_index, "wf_signal_raw"] = [
-            regime_to_signal(int(regime), labels, cfg) for regime in test_regimes
-        ]
+            wf.loc[idx, "wf_regime"] = regime
+            wf.loc[idx, "wf_signal_raw"] = regime_to_signal(regime, labels, cfg)
 
         window_count += 1
 

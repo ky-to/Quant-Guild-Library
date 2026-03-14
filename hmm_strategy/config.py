@@ -54,3 +54,41 @@ class StrategyConfig:
             "1mo": "Monthly",
         }
         return mapping.get(self.interval, self.interval)
+
+
+def test_strategy(config: StrategyConfig):
+    """Test the strategy on a single asset."""
+    # Load data
+    data = load_data(config)
+
+    # Process data
+    clean_returns = process_data(data)
+
+    # Train model
+    model = train_model(clean_returns)
+
+    # Test model
+    test_regimes = model.predict(clean_returns)
+
+    # Evaluate
+    evaluate_strategy(config, test_regimes)
+
+
+def load_data(config: StrategyConfig):
+    """Load data from the data folder."""
+    return pd.read_csv(config.data_folder)
+
+
+def process_data(data):
+    """Process data into clean returns."""
+    return data.dropna().values
+
+
+def train_model(clean_returns):
+    """Train the HMM model."""
+    return hmm.HMM(clean_returns)
+
+
+def evaluate_strategy(config: StrategyConfig, test_regimes):
+    """Evaluate the strategy."""
+    pass
