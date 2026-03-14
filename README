@@ -15,3 +15,6 @@ min_hold_bars — minimum bars before allowing a signal change (prevents daily B
 confirmation_bars — regime must persist N bars before triggering a switch
 signal_bull/neutral/bear — what % to allocate in each regime (e.g. set neutral=1.0 for binary mode)
 strategy_start — when to begin the test period
+
+.\.venv\Scripts\Activate.ps1  
+
